@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps Dashboard</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center">DevOps Dashboard</h1>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>CPU Usage of Containers</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="cpuChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Memory Usage of Containers</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="memoryChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>System Health</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="systemHealth" class="alert alert-info" role="alert">
+                            Loading system health...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function fetchContainers() {
+            const response = await fetch('/api/containers');
+            return response.json();
+        }
+
+        async function fetchSystemHealth() {
+            const response = await fetch('/api/system');
+            return response.json();
+        }
+
+        async function updateDashboard() {
+            const containers = await fetchContainers();
+            const systemHealth = await fetchSystemHealth();
+
+            // Prepare data for CPU and Memory Charts
+            const cpuLabels = containers.map(c => c.name);
+            const cpuData = containers.map(c => c.cpu_usage);
+            const memoryData = containers.map(c => c.memory_usage);
+
+            // CPU Chart
+            const cpuCtx = document.getElementById('cpuChart').getContext('2d');
+            new Chart(cpuCtx, {
+                type: 'bar',
+                data: {
+                    labels: cpuLabels,
+                    datasets: [{
+                        label: 'CPU Usage (%)',
+                        data: cpuData,
+                        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Memory Chart
+            const memoryCtx = document.getElementById('memoryChart').getContext('2d');
+            new Chart(memoryCtx, {
+                type: 'bar',
+                data: {
+                    labels: cpuLabels,
+                    datasets: [{
+                        label: 'Memory Usage (Bytes)',
+                        data: memoryData,
+                        backgroundColor: 'rgba(153, 102, 255, 0.6)',
+                        borderColor: 'rgba(153, 102, 255, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Update System Health
+            document.getElementById('systemHealth').innerHTML = `
+                <h5>System Health</h5>
+                <p>CPU Usage: ${systemHealth.cpu_usage}%</p>
+                <p>Memory Usage: ${systemHealth.memory_usage}%</p>
+            `;
+        }
+
+        setInterval(updateDashboard, 5000);
+        updateDashboard();
+    </script>
+</body>
+</html>
